@@ -11,7 +11,7 @@ import numpy as np
 import pymol
 from pymol import cmd
 from chempy import cpv
-from pymol.cgo import COLOR, SPHERE, CYLINDER, BEGIN, TRIANGLE_STRIP, TRIANGLE_FAN, NORMAL, VERTEX, END, ALPHA
+from pymol.cgo import COLOR, SPHERE, CYLINDER, BEGIN, TRIANGLE, TRIANGLES, TRIANGLE_STRIP, TRIANGLE_FAN, NORMAL, VERTEX, END, ALPHA
 
 def makePrimitive(cgo, name):
     az = cmd.get('auto_zoom', quiet=1)
@@ -45,9 +45,11 @@ def do_fit(xs, ys, zs):
     fit = (A.T * A).I * A.T * b
     errors = b - A * fit
     residual = np.linalg.norm(errors)
-    #print("solution:")
-    #print("%f x + %f y + %f = z" % (fit[0], fit[1], fit[2]))
+    print("solution:")
+    print("%f x + %f y + %f = z" % (fit[0], fit[1], fit[2]))
     abc = [float(fit[0]), float(fit[1]), float(fit[2])]
+    if abc == [0.0, 0.0, 0.0]:
+        abc = [0.0, 0.0, 1.0]
     return abc
 
 def plane(sele='', normal=None, settings=None):
@@ -64,6 +66,8 @@ def plane(sele='', normal=None, settings=None):
 
     #planeObj.extend([BEGIN, TRIANGLE_STRIP])
     planeObj.extend([BEGIN, TRIANGLE_FAN])
+    #planeObj.extend([BEGIN, TRIANGLES])
+    #planeObj.extend([BEGIN, TRIANGLE])
     planeObj.append(NORMAL)
 
     if 'INVERT' in settings:
@@ -75,7 +79,8 @@ def plane(sele='', normal=None, settings=None):
         planeObj.extend(normal)
 
     coor = cmd.get_model(sele).get_coord_list()
-    for corner in coor:
+    corners = coor + coor
+    for corner in corners:
         planeObj.append(VERTEX)
         planeObj.extend(corner)
     planeObj.append(END)
@@ -84,7 +89,7 @@ def plane(sele='', normal=None, settings=None):
 def make_points_plane(name="Myplane", sele='', settings={}):
     xs, ys, zs = get_xs_ys_zs(sele=sele)
     abc = do_fit(xs, ys, zs)
-    pplane = plane(sele=sele, normal=[0., 0., 1.], settings=settings)
+    pplane = plane(sele=sele, normal=abc, settings=settings)
     makePrimitive(pplane, name)
 
 cmd.extend("make_points_plane", make_points_plane)
