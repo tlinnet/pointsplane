@@ -52,7 +52,7 @@ def do_fit(xs, ys, zs):
         abc = [0.0, 0.0, 1.0]
     return abc
 
-def plane(sele='', normal=None, settings=None):
+def plane(coords=None, normal=None, settings=None):
     planeObj = []
 
     # Make settings
@@ -78,18 +78,51 @@ def plane(sele='', normal=None, settings=None):
     else:
         planeObj.extend(normal)
 
-    coor = cmd.get_model(sele).get_coord_list()
-    corners = coor + coor
-    for corner in corners:
+    for corner in coords:
         planeObj.append(VERTEX)
         planeObj.extend(corner)
     planeObj.append(END)
     return planeObj
 
+def make_order_coords(sele=None):
+    atoms = cmd.get_model(sele)
+    indexes = [at.index for at in atoms.atom]
+    index_cur = indexes.pop(0)
+    indexes_order = [index_cur]
+    
+    for i in range(len(indexes)):
+        sel_1= "(%s and index %s)"%(sele, ','.join(map(str, indexes)))
+        sel_2= "(%s and index %s)"%(sele, index_cur)
+        sel = "%s near_to 2 og %s"%(sel_1, sel_2)
+        #print(sel)
+        sele_name = "_test_%i"%i
+        cmd.select(sele_name, sel)
+        atoms_sel = cmd.get_model(sele_name)
+        indexes_sel = [at.index for at in atoms_sel.atom]
+        index_cur = indexes_sel[0]
+        indexes_order.append(index_cur)
+        indexes.remove(index_cur)
+        cmd.delete(sele_name)
+    
+    coords_order = []
+    for i in indexes_order:
+        sel= "(%s and index %s)"%(sele, i)
+        sele_name = "_test_%i"%i
+        cmd.select(sele_name, sel)
+        atoms_sel = cmd.get_model(sele_name)
+        coord_sel = [at.coord for at in atoms_sel.atom]
+        coords_order.extend(coord_sel)
+        
+    return coords_order
+
 def make_points_plane(name="Myplane", sele='', settings={}):
     xs, ys, zs = get_xs_ys_zs(sele=sele)
     abc = do_fit(xs, ys, zs)
-    pplane = plane(sele=sele, normal=abc, settings=settings)
+
+    #coords = cmd.get_model(sele).get_coord_list()
+    coords = make_order_coords(sele)
+    
+    pplane = plane(coords, normal=abc, settings=settings)
     makePrimitive(pplane, name)
 
 cmd.extend("make_points_plane", make_points_plane)
