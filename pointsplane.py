@@ -95,23 +95,25 @@ def make_order_coords(sele=None):
         sel_2= "(%s and index %s)"%(sele, index_cur)
         sel = "%s near_to 2 og %s"%(sel_1, sel_2)
         #print(sel)
-        sele_name = "_test_%i"%i
+        sele_name = "test_%i"%i
         cmd.select(sele_name, sel)
         atoms_sel = cmd.get_model(sele_name)
         indexes_sel = [at.index for at in atoms_sel.atom]
-        index_cur = indexes_sel[0]
+        index_cur = indexes_sel[-1]
         indexes_order.append(index_cur)
         indexes.remove(index_cur)
         cmd.delete(sele_name)
     
+    print(indexes_order)
     coords_order = []
     for i in indexes_order:
         sel= "(%s and index %s)"%(sele, i)
-        sele_name = "_test_%i"%i
+        sele_name = "test2_%i"%i
         cmd.select(sele_name, sel)
         atoms_sel = cmd.get_model(sele_name)
         coord_sel = [at.coord for at in atoms_sel.atom]
         coords_order.extend(coord_sel)
+        cmd.delete(sele_name)
         
     return coords_order
 
